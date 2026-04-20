@@ -1,0 +1,25 @@
+import uuid
+from datetime import datetime
+from decimal import Decimal
+from typing import Optional
+
+from pydantic import UUID7
+from sqlalchemy import Column, text
+from sqlmodel import TIMESTAMP, Field, SQLModel
+
+
+class Profiles(SQLModel, table=True):
+    id: Optional[UUID7] = Field(default_factory=uuid.uuid7, primary_key=True)
+    name: str = Field(unique=True)
+    gender: str
+    gender_probability: Decimal = Field(decimal_places=2)
+    age: int
+    country_id: str = Field(max_length=2)
+    country_name: str
+    country_probability: Decimal = Field(decimal_places=2)
+    created_at: Optional[datetime] = Field(
+        default=None,
+        sa_column=Column(
+            TIMESTAMP(timezone=True), server_default=text("NOW()"), nullable=False
+        ),
+    )
