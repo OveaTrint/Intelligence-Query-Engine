@@ -11,12 +11,13 @@ from sqlmodel import TIMESTAMP, Field, SQLModel
 class Profiles(SQLModel, table=True):
     id: Optional[UUID7] = Field(default_factory=uuid.uuid7, primary_key=True)
     name: str = Field(unique=True)
-    gender: str
-    gender_probability: Decimal = Field(decimal_places=2)
-    age: int
-    country_id: str = Field(max_length=2)
+    gender: str = Field(index=True)
+    gender_probability: Decimal = Field(decimal_places=2, index=True)
+    age: int = Field(index=True)
+    age_group: str = Field(index=True)
+    country_id: str = Field(max_length=2, index=True)
     country_name: str
-    country_probability: Decimal = Field(decimal_places=2)
+    country_probability: Decimal = Field(decimal_places=2, index=True)
     created_at: Optional[datetime] = Field(
         default=None,
         sa_column=Column(

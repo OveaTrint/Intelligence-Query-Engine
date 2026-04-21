@@ -1,10 +1,14 @@
 import json
 
-from database.database import session
+from database.database import Session, create_db_and_tables, engine
 from models.models import Profiles
+
+create_db_and_tables()
+session = Session(engine)
 
 
 def seed():
+    """Loads the database with dummy data provided by HNG"""
     with open("seed_profiles.json") as f:
         json_profiles = json.load(f)
 
