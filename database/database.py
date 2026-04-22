@@ -7,7 +7,7 @@ from core.config import DATABASE_URL
 
 assert DATABASE_URL, "No database URL provided"
 
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL)
 
 
 def create_db_and_tables() -> None:
