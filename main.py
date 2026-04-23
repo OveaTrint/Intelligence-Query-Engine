@@ -14,7 +14,6 @@ from models.schemas import (
     ACCEPTED_SORT_BY,
     OrderBy,
     PaginatedProfiles,
-    Params,
     ProfilesParams,
 )
 from query_parser import parse_query
@@ -190,3 +189,8 @@ async def search_profiles(
     formatted_profiles = format_profiles(profiles)
 
     return PaginatedProfiles(page=page, limit=limit, data=formatted_profiles)
+
+
+@app.get("/")
+async def running():
+    return JSONResponse(content={"status": "I'm alive :)"})
