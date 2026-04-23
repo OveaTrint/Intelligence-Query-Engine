@@ -54,7 +54,7 @@ async def bad_request_handler(request: Request, exc: BadRequestError) -> JSONRes
 
 @app.exception_handler(ProfileNotFoundError)
 async def profile_not_found_handler(
-    request: Request, exc: BadRequestError
+    request: Request, exc: ProfileNotFoundError
 ) -> JSONResponse:
     return JSONResponse(
         content={"status": "error", "message": "Profile not found"},
