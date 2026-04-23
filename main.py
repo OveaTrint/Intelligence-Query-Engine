@@ -7,26 +7,23 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlmodel import desc, select
 
-from database.database import create_db_and_tables, session
+from database.database import SessionDep, create_db_and_tables
 from exceptions.exceptions import BadRequestError, ProfileNotFoundError
 from models.models import ProfilesDatabase
 from models.schemas import (
     ACCEPTED_SORT_BY,
-    FilterParams,
     OrderBy,
     PaginatedProfiles,
+    Params,
+    ProfilesParams,
 )
-from seed_profiles import seed
-from utils.helpers import format_profiles, is_seeded
+from query_parser import parse_query
+from utils.helpers import format_profiles
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     create_db_and_tables()
-    if is_seeded():
-        pass
-    else:
-        seed()
     yield
 
 
@@ -86,7 +83,8 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 async def paginated_response(
-    filter_params: Annotated[FilterParams, Query()],
+    session: SessionDep,
+    filter_params: Annotated[ProfilesParams, Query()],
 ) -> PaginatedProfiles:
     query = select(ProfilesDatabase)
 
@@ -143,3 +141,14 @@ async def get_profiles(
         raise ProfileNotFoundError()
 
     return profiles
+
+
+@app.get("/api/search")
+async def search_profiles(q: str) -> JSONResponse | PaginatedProfiles:
+    parsed_query = parse_query(q)
+
+    if not parsed_query:
+        return JSONResponse(
+            {"status": "error", "message": "Unable to interpret query"},
+            status.HTTP_400_BAD_REQUEST,
+        )

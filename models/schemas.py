@@ -39,8 +39,8 @@ class SortByProfiles(str, Enum):
     gender_probability = "gender_probability"
 
 
-class FilterParams(SQLModel):
-    """Parameters for api/profiles"""
+class Params(SQLModel):
+    """General parameters for api"""
 
     model_config = {"extra": "forbid"}
 
@@ -51,10 +51,15 @@ class FilterParams(SQLModel):
     max_age: Optional[int] = Field(None)
     min_gender_probability: Optional[float] = Field(None)
     max_country_probability: Optional[float] = Field(None)
-    sort_by: SortByProfiles = Field(None)
-    order: OrderBy = Field(None)
     page: int = Field(0, ge=0)
     limit: int = Field(default=10, le=50, gt=0)
+
+
+class ProfilesParams(Params):
+    """Parameters for api/profiles"""
+
+    sort_by: SortByProfiles = Field(None)
+    order: OrderBy = Field(None)
 
 
 ACCEPTED_SORT_BY = {
