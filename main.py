@@ -116,8 +116,8 @@ async def paginated_response(
         )
 
     # order must be paired with sort_by
-    if filter_params.order and not filter_params.sort_by:
-        raise BadRequestError()
+    # if filter_params.order and not filter_params.sort_by:
+    # raise BadRequestError()
 
     if filter_params.sort_by and filter_params.order == OrderBy.descending:
         query = query.order_by(desc(ACCEPTED_SORT_BY[filter_params.sort_by]))
