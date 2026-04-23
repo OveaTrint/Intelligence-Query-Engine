@@ -130,6 +130,8 @@ async def paginated_response(
     offset = filter_params.page * filter_params.limit
     query = query.offset(offset).limit(filter_params.limit)
 
+    print(str(query))
+
     # executes query
     profiles = session.exec(query).all()
 
@@ -151,7 +153,7 @@ async def get_profiles(
     return profiles
 
 
-@app.get("/api/search")
+@app.get("/api/profiles/search")
 async def search_profiles(
     session: SessionDep, q: str, page: int = Query(1), limit: int = Query(10, le=50)
 ):
