@@ -1,5 +1,9 @@
+from typing import Optional
+
+
 class BadRequestError(Exception):
-    pass
+    def __init__(self, message: Optional[str] = None) -> None:
+        self.message = message
 
 
 class ProfileNotFoundError(Exception):

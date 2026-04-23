@@ -40,6 +40,12 @@ app.add_middleware(
 
 @app.exception_handler(BadRequestError)
 async def bad_request_handler(request: Request, exc: BadRequestError) -> JSONResponse:
+    if exc.message:
+        return JSONResponse(
+            content={"status": "error", "message": exc.message},
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
     return JSONResponse(
         content={"status": "error", "message": "Missing or empty parameter"},
         status_code=status.HTTP_400_BAD_REQUEST,
@@ -83,8 +89,7 @@ async def general_exception_handler(request: Request, exc: Exception) -> JSONRes
 
 
 async def paginated_response(
-    session: SessionDep,
-    filter_params: Annotated[ProfilesParams, Query()],
+    session: SessionDep, filter_params: Annotated[ProfilesParams, Query()]
 ) -> PaginatedProfiles:
     query = select(ProfilesDatabase)
 
@@ -122,12 +127,16 @@ async def paginated_response(
     ):
         query = query.order_by(ACCEPTED_SORT_BY[filter_params.sort_by])
 
+    # compute offset for profiles to be displayed
     offset = filter_params.page * filter_params.limit
-
     query = query.offset(offset).limit(filter_params.limit)
+
+    # executes query
     profiles = session.exec(query).all()
 
+    # formats the list of profiles to appropriate format
     formatted_profiles = format_profiles(profiles)
+
     return PaginatedProfiles(
         page=filter_params.page, limit=filter_params.limit, data=formatted_profiles
     )
@@ -144,11 +153,40 @@ async def get_profiles(
 
 
 @app.get("/api/search")
-async def search_profiles(q: str) -> JSONResponse | PaginatedProfiles:
+async def search_profiles(
+    session: SessionDep, q: str, page: int = Query(1), limit: int = Query(10, le=50)
+):
     parsed_query = parse_query(q)
 
     if not parsed_query:
-        return JSONResponse(
-            {"status": "error", "message": "Unable to interpret query"},
-            status.HTTP_400_BAD_REQUEST,
-        )
+        raise BadRequestError(message="Unable to interpret query")
+
+    gender = parsed_query.get("gender")
+    min_age = parsed_query.get("min_age")
+    max_age = parsed_query.get("max_age")
+    age_group = parsed_query.get("age_group")
+    country_id = parsed_query.get("country_id")
+
+    query = select(ProfilesDatabase)
+
+    if gender:
+        query = query.where(ProfilesDatabase.gender == gender.lower())
+    if age_group:
+        query = query.where(ProfilesDatabase.age_group == age_group.lower())
+    if country_id:
+        query = query.where(ProfilesDatabase.country_id == country_id.upper())
+    if min_age:
+        query = query.where(ProfilesDatabase.age > min_age)
+    if max_age:
+        query = query.where(ProfilesDatabase.age < max_age)
+
+    offset = page * limit
+    query = query.offset(offset).limit(limit)
+
+    profiles = session.exec(query)
+    if not profiles:
+        raise ProfileNotFoundError()
+
+    formatted_profiles = format_profiles(profiles)
+
+    return PaginatedProfiles(page=page, limit=limit, data=formatted_profiles)

@@ -137,6 +137,7 @@ def get_country_id(query: str) -> Dict:
 
 
 def parse_query(query: str) -> Dict:
+    """Parses query string to query parameters using rules"""
     filters = {}
 
     # remove special characters
@@ -162,10 +163,3 @@ def parse_query(query: str) -> Dict:
         filters.update(country_id)
 
     return filters
-
-
-print(parse_query("young males"))
-print(parse_query("females above 30"))
-print(parse_query("people from angola"))
-print(parse_query("adult males from kenya"))
-print(parse_query("male and female teenagers above 17"))
