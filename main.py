@@ -5,6 +5,7 @@ from fastapi import Depends, FastAPI, Query, Request, status
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from sqlalchemy import func
 from sqlmodel import desc, select
 
 from database.database import SessionDep, create_db_and_tables
@@ -102,22 +103,19 @@ async def paginated_response(
         query = query.where(
             ProfilesDatabase.country_id == filter_params.country_id.upper()
         )
-    if filter_params.min_age:
-        query = query.where(ProfilesDatabase.age > filter_params.min_age)
-    if filter_params.max_age:
-        query = query.where(ProfilesDatabase.age < filter_params.max_age)
-    if filter_params.min_gender_probability:
+    if filter_params.min_age is not None:
+        query = query.where(ProfilesDatabase.age >= filter_params.min_age)
+    if filter_params.max_age is not None:
+        query = query.where(ProfilesDatabase.age <= filter_params.max_age)
+    if filter_params.min_gender_probability is not None:
         query = query.where(
-            ProfilesDatabase.gender_probability > filter_params.min_gender_probability
+            ProfilesDatabase.gender_probability >= filter_params.min_gender_probability
         )
-    if filter_params.max_country_probability:
+    if filter_params.max_country_probability is not None:
         query = query.where(
-            ProfilesDatabase.country_probability < filter_params.max_country_probability
+            ProfilesDatabase.country_probability
+            <= filter_params.max_country_probability
         )
-
-    # order must be paired with sort_by
-    # if filter_params.order and not filter_params.sort_by:
-    # raise BadRequestError()
 
     if filter_params.sort_by:
         if filter_params.order == OrderBy.descending:
@@ -129,20 +127,20 @@ async def paginated_response(
     elif filter_params.order == OrderBy.ascending:
         query = query.order_by(ProfilesDatabase.id)
 
-    # compute offset for profiles to be displayed
-    offset = filter_params.page * filter_params.limit
+    total = session.exec(select(func.count()).select_from(query.subquery())).one()
+
+    offset = (filter_params.page - 1) * filter_params.limit
     query = query.offset(offset).limit(filter_params.limit)
 
-    print(str(query))
-
-    # executes query
     profiles = session.exec(query).all()
 
-    # formats the list of profiles to appropriate format
     formatted_profiles = format_profiles(profiles)
 
     return PaginatedProfiles(
-        page=filter_params.page, limit=filter_params.limit, data=formatted_profiles
+        page=filter_params.page,
+        limit=filter_params.limit,
+        total=total,
+        data=formatted_profiles,
     )
 
 
@@ -150,16 +148,19 @@ async def paginated_response(
 async def get_profiles(
     profiles: Annotated[PaginatedProfiles, Depends(paginated_response)],
 ) -> PaginatedProfiles:
-    if not profiles.data:
-        raise ProfileNotFoundError()
-
     return profiles
 
 
 @app.get("/api/profiles/search")
 async def search_profiles(
-    session: SessionDep, q: str, page: int = Query(1), limit: int = Query(10, le=50)
+    session: SessionDep,
+    q: str = Query(..., min_length=1),
+    page: int = Query(1, ge=1),
+    limit: int = Query(10, le=50, ge=1),
 ):
+    if not q or not q.strip():
+        raise BadRequestError(message="Query cannot be empty")
+
     parsed_query = parse_query(q)
 
     if not parsed_query:
@@ -179,21 +180,23 @@ async def search_profiles(
         query = query.where(ProfilesDatabase.age_group == age_group.lower())
     if country_id:
         query = query.where(ProfilesDatabase.country_id == country_id.upper())
-    if min_age:
-        query = query.where(ProfilesDatabase.age > min_age)
-    if max_age:
-        query = query.where(ProfilesDatabase.age < max_age)
+    if min_age is not None:
+        query = query.where(ProfilesDatabase.age >= min_age)
+    if max_age is not None:
+        query = query.where(ProfilesDatabase.age <= max_age)
 
-    offset = page * limit
+    total = session.exec(select(func.count()).select_from(query.subquery())).one()
+
+    offset = (page - 1) * limit
     query = query.offset(offset).limit(limit)
 
-    profiles = session.exec(query)
-    if not profiles:
-        raise ProfileNotFoundError()
+    profiles = session.exec(query).all()
 
     formatted_profiles = format_profiles(profiles)
 
-    return PaginatedProfiles(page=page, limit=limit, data=formatted_profiles)
+    return PaginatedProfiles(
+        page=page, limit=limit, total=total, data=formatted_profiles
+    )
 
 
 @app.get("/")

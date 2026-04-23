@@ -35,7 +35,7 @@ class PaginatedProfiles(SQLModel):
     status: str = Field(default="success")
     page: int
     limit: int
-    total: int = Field(default=2026)
+    total: int
     data: Sequence[ProfilesResponse]
 
 
@@ -51,7 +51,7 @@ class Params(SQLModel):
     max_age: Optional[int] = Field(None)
     min_gender_probability: Optional[float] = Field(None)
     max_country_probability: Optional[float] = Field(None)
-    page: int = Field(1)
+    page: int = Field(1, ge=1)
     limit: int = Field(default=10, le=50, gt=0)
 
 
