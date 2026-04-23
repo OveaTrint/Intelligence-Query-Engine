@@ -359,7 +359,3 @@ The API returns structured error responses for common failure cases:
 - Sorting is only applied when `sort_by` is present; `order` must be paired with `sort_by`.
 
 ---
-
-## License
-
-Add your preferred license here.
