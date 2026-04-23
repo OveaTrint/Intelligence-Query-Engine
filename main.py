@@ -119,12 +119,15 @@ async def paginated_response(
     # if filter_params.order and not filter_params.sort_by:
     # raise BadRequestError()
 
-    if filter_params.sort_by and filter_params.order == OrderBy.descending:
-        query = query.order_by(desc(ACCEPTED_SORT_BY[filter_params.sort_by]))
-    elif filter_params.sort_by or (
-        filter_params.sort_by and filter_params.order == OrderBy.ascending
-    ):
-        query = query.order_by(ACCEPTED_SORT_BY[filter_params.sort_by])
+    if filter_params.sort_by:
+        if filter_params.order == OrderBy.descending:
+            query = query.order_by(desc(ACCEPTED_SORT_BY[filter_params.sort_by]))
+        else:
+            query = query.order_by(ACCEPTED_SORT_BY[filter_params.sort_by])
+    elif filter_params.order == OrderBy.descending:
+        query = query.order_by(desc(ProfilesDatabase.id))
+    elif filter_params.order == OrderBy.ascending:
+        query = query.order_by(ProfilesDatabase.id)
 
     # compute offset for profiles to be displayed
     offset = filter_params.page * filter_params.limit
